@@ -1,0 +1,10 @@
+name = "variables"
+
+variables {
+	trello_board_id: "xxx"
+	long_string: <<EOF
+xxxxxx
+xxxxx
+xxxx
+EOF
+}
