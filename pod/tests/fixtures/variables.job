@@ -1,10 +1,12 @@
-name = "variables"
-
-variables {
-	trello_board_id: "xxx"
-	long_string: <<EOF
+number = 1234
+bin_number = 0b123
+oct_nubmer = 0o123
+hex_number = 0x123
+string = "xxx"
+long_string = EOF
 xxxxxx
 xxxxx
 xxxx
 EOF
-}
+statement = `create_card {trigger.name} xxxx`
+bool = True

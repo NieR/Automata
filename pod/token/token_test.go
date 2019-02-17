@@ -1,69 +1,75 @@
 package token
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestTypeString(t *testing.T) {
-	var tokens = []struct {
-		tt  Type
-		str string
+func TestToken_String(t *testing.T) {
+	cases := []struct {
+		input  Token
+		output string
 	}{
-		{ILLEGAL, "ILLEGAL"},
-		{EOF, "EOF"},
-		{COMMENT, "COMMENT"},
-		{IDENT, "IDENT"},
-		{NUMBER, "NUMBER"},
-		{FLOAT, "FLOAT"},
-		{BOOL, "BOOL"},
-		{STRING, "STRING"},
-		{HEREDOC, "HEREDOC"},
-		{LBRACK, "LBRACK"},
-		{LBRACE, "LBRACE"},
-		{COMMA, "COMMA"},
-		{PERIOD, "PERIOD"},
-		{RBRACK, "RBRACK"},
-		{RBRACE, "RBRACE"},
-		{ASSIGN, "ASSIGN"},
-		{ADD, "ADD"},
-		{SUB, "SUB"},
-	}
-
-	for _, token := range tokens {
-		if token.tt.String() != token.str {
-			t.Errorf("want: %q got:%q\n", token.str, token.tt)
-		}
-	}
-
-}
-
-func TestTokenValue(t *testing.T) {
-	var tokens = []struct {
-		tt Token
-		v  interface{}
-	}{
-		{Token{Type: BOOL, Text: `true`}, true},
-		{Token{Type: BOOL, Text: `false`}, false},
-		{Token{Type: FLOAT, Text: `3.14`}, float64(3.14)},
-		{Token{Type: NUMBER, Text: `42`}, int64(42)},
-		{Token{Type: IDENT, Text: `foo`}, "foo"},
-		{Token{Type: STRING, Text: `"foo"`}, "foo"},
-		{Token{Type: STRING, Text: `"foo\nbar"`}, "foo\nbar"},
-		{Token{Type: STRING, Text: `"${file("foo")}"`}, `${file("foo")}`},
 		{
 			Token{
-				Type: STRING,
-				Text: `"${replace("foo", ".", "\\.")}"`,
+				Type:    EOF,
+				Content: "",
 			},
-			`${replace("foo", ".", "\\.")}`},
-		{Token{Type: HEREDOC, Text: "<<EOF\nfoo\nbar\nEOF"}, "foo\nbar"},
+			"end of string",
+		},
+		{
+			Token{
+				Type:    INVALID,
+				Content: "forbar",
+			},
+			`invalid sequence "forbar"`,
+		},
+		{
+			Token{
+				Type:    STRING,
+				Content: "hello",
+			},
+			`string "hello"`,
+		},
+		{
+			Token{
+				Type:    HEREDOC,
+				Content: "long string",
+			},
+			`heredoc "long string"`,
+		},
+		{
+			Token{
+				Type:    INTEGER,
+				Content: "123",
+			},
+			"integer 123",
+		},
+		{
+			Token{
+				Type:    FLOAT,
+				Content: "1.23",
+			},
+			"float 1.23",
+		},
+		{
+			Token{
+				Type:    STATEMENT,
+				Content: "have light",
+			},
+			"statement `have light`",
+		},
+		{
+			Token{
+				Type:    EQUAL,
+				Content: "==",
+			},
+			"==",
+		},
 	}
 
-	for _, token := range tokens {
-		if val := token.tt.Value(); !reflect.DeepEqual(val, token.v) {
-			t.Errorf("want: %v got:%v\n", token.v, val)
-		}
+	for _, v := range cases {
+		assert.Equal(t, v.output, v.input.String())
 	}
-
 }

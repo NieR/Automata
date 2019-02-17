@@ -1,150 +1,83 @@
 package token
 
-import (
-	"fmt"
-	"strconv"
-)
+import "fmt"
 
-// Token defines a single token which can be obtained via the Scanner
+// Token is the token used in pod job.
 type Token struct {
-	Type Type
-	Pos  Pos
-	Text string
+	Type    Type
+	Content string
+	Pos     Pos
 }
 
-// Type is the set of lexical tokens.
+//go:generate stringer -type=Type
 type Type int
 
 const (
-	// Special tokens
-	ILLEGAL Type = iota
-	EOF
-	COMMENT
+	// Identifier
+	IDENT Type = iota
 
-	identifier_beg
-	IDENT  // literals
-	literal_beg
-	NUMBER   // 12345
-	FLOAT    // 123.45
-	BOOL     // true,false
-	STRING   // "abc"
-	HEREDOC  // <<FOO\nbar\nFOO
-	literal_end
-	identifier_end
+	// Type
+	STRING     // "abc"
+	HEREDOC    // <<EOF\nabc\nEOF
+	INTEGER    // 123, 0x123, 0o123, 0b110
+	FLOAT      // 123.123
+	BOOL       // True
+	STATEMENT  // `create_card xxx`
 
-	operator_beg
-	COMMA   // ,
-	PERIOD  // .
+	// Numeric
+	ADD      // +
+	SUB      // -
+	STAR     // *
+	SLASH    // /
+	PERCENT  // %
+	POWER    // ^
 
-	LBRACK  // [
-	RBRACK  // ]
+	// Logic
+	EQUAL     // ==
+	NOTEQUAL  // !=
+	GT        // >
+	LT        // <
+	GTE       // >=
+	LTE       // <=
+	AND       // &&
+	OR        // ||
 
-	LBRACE  // {
-	RBRACE  // }
+	// Operate
+	LPAREN    // (
+	RPAREN    // )
+	LBRACKET  // [
+	RBRACKET  // ]
+	LBRACE    // {
+	RBRACE    // }
+	COMMA     // ,
+	PERIOD    // .
+	QUOTE     // "
 
-	ASSIGN  // =
-	ADD     // +
-	SUB     // -
-	operator_end
+	ASSIGN   // =
+	EOF      // EOF
+	INVALID  // INVALID
 )
 
-var tokens = [...]string{
-	ILLEGAL: "ILLEGAL",
-
-	EOF:     "EOF",
-	COMMENT: "COMMENT",
-
-	IDENT:  "IDENT",
-	NUMBER: "NUMBER",
-	FLOAT:  "FLOAT",
-	BOOL:   "BOOL",
-	STRING: "STRING",
-
-	LBRACK:  "LBRACK",
-	LBRACE:  "LBRACE",
-	COMMA:   "COMMA",
-	PERIOD:  "PERIOD",
-	HEREDOC: "HEREDOC",
-
-	RBRACK: "RBRACK",
-	RBRACE: "RBRACE",
-
-	ASSIGN: "ASSIGN",
-	ADD:    "ADD",
-	SUB:    "SUB",
-}
-
-// String returns the string corresponding to the token tok.
-func (t Type) String() string {
-	s := ""
-	if 0 <= t && t < Type(len(tokens)) {
-		s = tokens[t]
-	}
-	if s == "" {
-		s = "token(" + strconv.Itoa(int(t)) + ")"
-	}
-	return s
-}
-
-// IsIdentifier returns true for tokens corresponding to identifiers and basic
-// type literals; it returns false otherwise.
-func (t Type) IsIdentifier() bool { return identifier_beg < t && t < identifier_end }
-
-// IsLiteral returns true for tokens corresponding to basic type literals; it
-// returns false otherwise.
-func (t Type) IsLiteral() bool { return literal_beg < t && t < literal_end }
-
-// IsOperator returns true for tokens corresponding to operators and
-// delimiters; it returns false otherwise.
-func (t Type) IsOperator() bool { return operator_beg < t && t < operator_end }
-
-// String returns the token's literal text. Note that this is only
-// applicable for certain token types, such as token.IDENT,
-// token.STRING, etc..
-func (t Token) String() string {
-	return fmt.Sprintf("%s %s %s", t.Pos.String(), t.Type.String(), t.Text)
-}
-
-// Value returns the properly typed value for this token. The type of
-// the returned interface{} is guaranteed based on the Type field.
-//
-// This can only be called for literal types. If it is called for any other
-// type, this will panic.
-func (t Token) Value() interface{} {
+// String will output current token's content.
+func (t *Token) String() string {
 	switch t.Type {
-	case BOOL:
-		if t.Text == "true" {
-			return true
-		} else if t.Text == "false" {
-			return false
-		}
-
-		panic("unknown bool value: " + t.Text)
-	case FLOAT:
-		v, err := strconv.ParseFloat(t.Text, 64)
-		if err != nil {
-			panic(err)
-		}
-
-		return float64(v)
-	case NUMBER:
-		v, err := strconv.ParseInt(t.Text, 0, 64)
-		if err != nil {
-			panic(err)
-		}
-
-		return int64(v)
-	case IDENT:
-		return t.Text
+	case EOF:
+		return "end of string"
+	case INVALID:
+		return fmt.Sprintf("invalid sequence %q", t.Content)
 	case STRING:
-		v, err := unquote(t.Text)
-		if err != nil {
-			panic(fmt.Sprintf("unquote %s err: %s", t.Text, err))
-		}
-		return v
+		return fmt.Sprintf("string %q", t.Content)
 	case HEREDOC:
-		return parseHEARDOC(t.Text)
+		return fmt.Sprintf("heredoc %q", t.Content)
+	case INTEGER:
+		return fmt.Sprintf("integer %s", t.Content)
+	case FLOAT:
+		return fmt.Sprintf("float %s", t.Content)
+	case STATEMENT:
+		return fmt.Sprintf("statement `%s`", t.Content)
 	default:
-		panic(fmt.Sprintf("unimplemented Value for type: %s", t.Type))
+		// The remaining token types have content that
+		// speaks for itself.
+		return fmt.Sprintf("%s", t.Content)
 	}
 }
